@@ -1,0 +1,154 @@
+import requests
+import json
+import time
+import os
+from datetime import datetime
+
+# ===== Cấu hình GitHub chứa username:password:expiry =====
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/NQGamingVN/User/refs/heads/main/passwor"
+
+# ===== Cấu hình cookie và payload =====
+cookie = "MobileLoginKey=3327dcebf36753bad35ca590472ef9b5_B5D1ED8A27D34B0EA2AD190CC676F866; MenuId=5640EB6F84E0451FA88F8273AC169E6E; PageIndex=0"
+payload = "menuid=B37001A321124EB7B7B7F7B53B323548"
+headers = {
+    "accept": "*/*",
+    "accept-language": "vi-VN,vi;q=0.9",
+    "apirequest": "true",
+    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "x-requested-with": "XMLHttpRequest",
+    "cookie": cookie,
+    "Referer": "https://58vn.app/"
+}
+url = "https://58vn.app/Main/ApiGetPlayInfo"
+
+# ===== Hàm lấy danh sách người dùng từ GitHub =====
+def fetch_users():
+    try:
+        r = requests.get(GITHUB_RAW_URL)
+        r.raise_for_status()
+        lines = r.text.strip().split("\n")
+        users = {}
+        for line in lines:
+            parts = line.strip().split(":")
+            if len(parts) == 3:
+                username, password, expiry = parts
+                users[username] = (password, expiry)
+        return users
+    except Exception as e:
+        print("❌ Lỗi khi lấy danh sách người dùng:", e)
+        return {}
+
+# ===== Hàm kiểm tra login =====
+def login():
+    users = fetch_users()
+    if not users:
+        print("❌ Không lấy được danh sách user từ GitHub")
+        return False
+
+    username = input("Nhập username: ").strip()
+    password = input("Nhập password: ").strip()
+
+    if username in users:
+        stored_pass, expiry = users[username]
+        if password == stored_pass:
+            if expiry.lower() == "no":
+                expiry_display = "Vĩnh viễn!"
+                remaining_days = "Vĩnh viễn!"
+            else:
+                try:
+                    expiry_date = datetime.strptime(expiry, "%Y-%m-%d")
+                    today = datetime.today()
+                    delta = (expiry_date - today).days
+                    if delta < 0:
+                        print("❌ Tài khoản đã hết hạn")
+                        return False
+                    remaining_days = f"{delta} ngày còn lại"
+                except:
+                    print("❌ Sai định dạng ngày hết hạn")
+                    return False
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print("""
+            """*10)
+            print(f"✅ Đăng nhập thành công: {username}")
+            print(f"Ngày hết hạn: {expiry}")
+            print(f"Số ngày còn lại: {remaining_days}")
+            print("⏳ Đợi 10 giây trước khi vào tool...")
+            time.sleep(10)
+            return True
+        else:
+            print("❌ Sai mật khẩu")
+            return False
+    else:
+        print("❌ Username không tồn tại")
+        return False
+
+# ===== Hàm lấy dữ liệu dự báo =====
+def get_forecast():
+    try:
+        response = requests.post(url, headers=headers, data=payload)
+        data = response.json()
+        return data
+    except Exception as e:
+        print("❌ Lỗi khi lấy dữ liệu:", e)
+        return None
+
+# ===== Hiển thị tổng quan =====
+def display_overview(formula):
+    print("""
+    """*10)
+    print("="*60)
+    print("                THÔNG SỐ CÔNG THỨC PK3 60S                ")
+    print("="*60)
+    print(f"Mã công thức           : {formula.get('FormulaKey','???')}")
+    print(f"Số lượng cố định       : {formula.get('FixedCount','???')}")
+    print(f"Số chu kỳ kế hoạch     : {formula.get('PlanCycle','???')}")
+    print(f"Chỉ số chu kỳ hiện tại : {formula.get('CycleIndex','???')}")
+    print(f"Độ chính xác           : {formula.get('Accuracy','???')}%")
+    print(f"Số chu kỳ hoàn thành   : {formula.get('CompleteCycle','???')}")
+    print(f"Số kết quả đúng        : {formula.get('RightCount','???')}")
+    print(f"Số kết quả sai         : {formula.get('ErrorCount','???')}")
+    print(f"Chuỗi đúng liên tiếp   : {formula.get('SeriesRight','???')}, Chuỗi đúng lớn nhất: {formula.get('MaxSeriesRight','???')}")
+    print(f"Chuỗi sai liên tiếp    : {formula.get('SeriesError','???')}, Chuỗi sai lớn nhất  : {formula.get('MaxSeriesError','???')}")
+    print("="*60)
+
+# ===== Hiển thị dự báo kỳ sắp tới =====
+def display_next_forecast(data):
+    try:
+        formula = data['data']['LotteryFormula']
+        forecasts = formula['LotteryForecastList']
+    except:
+        print("❌ Không tìm thấy dữ liệu dự báo")
+        return
+
+    next_forecasts = [item for item in forecasts if item.get('IsForecast', False)]
+    if not next_forecasts:
+        print("❌ Không có kỳ dự báo nào sắp tới")
+        return
+
+    print("          DỰ BÁO KỲ QUAY SẮP TỚI (CẬP NHẬT)          ")
+    print("-"*60)
+    for item in next_forecasts:
+        print(f"Kỳ quay : {item.get('ExpectStartFull','???')}")
+        print(f"Dự báo : {item.get('ForecastResult','???')}")
+        print("-"*60)
+
+# ===== Main loop =====
+def main():
+    if not login():
+        return
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        data = get_forecast()
+        if data:
+            try:
+                formula = data['data']['LotteryFormula']
+                display_overview(formula)
+                display_next_forecast(data)
+            except:
+                print("❌ Lỗi khi hiển thị dữ liệu")
+        else:
+            print("❌ Không lấy được dữ liệu dự báo")
+        time.sleep(10)
+
+if __name__ == "__main__":
+    main()
