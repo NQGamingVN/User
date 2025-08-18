@@ -8,7 +8,7 @@ from datetime import datetime
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/NQGamingVN/User/refs/heads/main/passwor"
 
 # ===== Cấu hình cookie và payload =====
-cookie = "MobileLoginKey=3327dcebf36753bad35ca590472ef9b5_B5D1ED8A27D34B0EA2AD190CC676F866; MenuId=5640EB6F84E0451FA88F8273AC169E6E; PageIndex=0"
+cookie = "MobileLoginKey=3327dcebf36753bad35ca590472ef9b5_E996B105360D46AD964DA72FC5145145; MenuId=5640EB6F84E0451FA88F8273AC169E6E; PageIndex=0"
 payload = "menuid=B37001A321124EB7B7B7F7B53B323548"
 headers = {
     "accept": "*/*",
